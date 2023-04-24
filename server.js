@@ -41,7 +41,7 @@ const server = http.createServer((request, response) => {
                 }
             })
             if (Object.keys(bookToSend).length === 0) {
-                response.setHeader('Conent-Type', 'application/json');
+                response.setHeader('Conent-Type', 'string');
                 response.statusCode = 404;
                 response.write('Error - Book not found.')
                 response.end();
@@ -55,19 +55,33 @@ const server = http.createServer((request, response) => {
     }
     if (url === '/api/books' && method === 'POST') {
         let body = '';
+        let dataIsCorrect = true;
         request.on('data', (packet) => {
-            body += packet.toString();
+            const bookToAdd = JSON.parse(packet.toString());
+            if (!bookToAdd.hasOwnProperty('bookTitle') || !bookToAdd.hasOwnProperty('isFiction')) {
+                dataIsCorrect = false;
+            } else {
+                body += packet.toString();
+            }
         });
         request.on('end', () => {
-            fs.readFile('./data/books.json', 'utf8').then((booksData) => {
-                const parsedBooksData = JSON.parse(booksData);
-                const newBook = {bookId: (parsedBooksData.length + 1), ...JSON.parse(body)};
-                const newBooksData = [...parsedBooksData, newBook];
-                response.setHeader('Content-Type', 'application/json');
-                response.statusCode = 201;
-                response.write(JSON.stringify({ book: newBook }));
+            if (!dataIsCorrect) {
+                response.setHeader('Content-Type', 'string');
+                response.statusCode = 400;
+                response.write('Error - To add a new book, it needs to have a "bookTitle" and a "isFiction" property');
                 response.end();
-            })
+            } else {
+                fs.readFile('./data/books.json', 'utf8').then((booksData) => {
+                    const parsedBooksData = JSON.parse(booksData);
+                    const newBook = {bookId: (parsedBooksData.length + 1), ...JSON.parse(body)};
+                    const newBooksData = [...parsedBooksData, newBook];
+                    fs.writeFile('./data/books.json', JSON.stringify(newBooksData, null, 2))
+                    response.setHeader('Content-Type', 'application/json');
+                    response.statusCode = 201;
+                    response.write(JSON.stringify({ book: newBook }));
+                    response.end();
+                })
+            }
         })
     }
     if (url === `/api/books/${pageUrl}/author` && method === 'GET') {
