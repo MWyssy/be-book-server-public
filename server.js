@@ -1,4 +1,5 @@
 const http = require('http');
+const fs = require('fs/promises');
 
 const server = http.createServer((request, response) => {
     const { method, url } = request;
@@ -7,6 +8,15 @@ const server = http.createServer((request, response) => {
         response.statusCode = 200;
         response.write(JSON.stringify({ message: 'Hello!' }));
         response.end();
+    };
+    if (url === '/api/books' && method === 'GET') {
+        fs.readFile('./data/books.json', 'utf8').then((bookData) => {
+            const books = JSON.parse(bookData)
+            response.setHeader('Content-Type', 'application/jason');
+            response.statusCode = 200;
+            response.write(JSON.stringify({ books: books }));
+            response.end();
+        })
     }
 })
 
