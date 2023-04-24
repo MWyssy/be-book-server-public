@@ -4,7 +4,7 @@ const fs = require('fs/promises');
 const server = http.createServer((request, response) => {
     const { method, url } = request;
     if (url === '/api' && method === 'GET') {
-        response.setHeader('Content-Type', 'application/jason');
+        response.setHeader('Content-Type', 'application/json');
         response.statusCode = 200;
         response.write(JSON.stringify({ message: 'Hello!' }));
         response.end();
@@ -12,7 +12,7 @@ const server = http.createServer((request, response) => {
     if (url === '/api/books' && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData)
-            response.setHeader('Content-Type', 'application/jason');
+            response.setHeader('Content-Type', 'application/json');
             response.statusCode = 200;
             response.write(JSON.stringify({ books: books }));
             response.end();
@@ -21,13 +21,16 @@ const server = http.createServer((request, response) => {
     if (url === '/api/authors' && method === 'GET') {
         fs.readFile('./data/authors.json', 'utf8').then((authorData) => {
             const authors = JSON.parse(authorData)
-            response.setHeader('Content-Type', 'application/jason');
+            response.setHeader('Content-Type', 'application/json');
             response.statusCode = 200;
             response.write(JSON.stringify({ authors: authors }));
             response.end();
         })
     }
-    const pageUrl = url.match(/[0-9]/)[0]
+    let pageUrl = 0;
+    if (/[0-9]/.test(url)){
+        pageUrl = url.match(/[0-9]/)[0]
+    } 
     if (url === `/api/books/${pageUrl}` && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData);
@@ -37,10 +40,27 @@ const server = http.createServer((request, response) => {
                     bookToSend = book;
                 }
             })
-            response.setHeader('Content-Type', 'application/jason');
+            response.setHeader('Content-Type', 'application/json');
             response.statusCode = 200;
             response.write(JSON.stringify({ book: bookToSend }));
             response.end();
+        })
+    }
+    if (url === '/api/books' && method === 'POST') {
+        let body = '';
+        request.on('data', (packet) => {
+            body += packet.toString();
+        });
+        request.on('end', () => {
+            fs.readFile('./data/books.json', 'utf8').then((booksData) => {
+                const parsedBooksData = JSON.parse(booksData);
+                const newBook = {bookId: (parsedBooksData.length + 1), ...JSON.parse(body)};
+                const newBooksData = [...parsedBooksData, newBook];
+                response.setHeader('Content-Type', 'application/json');
+                response.statusCode = 201;
+                response.write(JSON.stringify({ book: newBook }));
+                response.end();
+            })
         })
     }
 })
