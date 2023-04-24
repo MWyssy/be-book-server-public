@@ -18,6 +18,15 @@ const server = http.createServer((request, response) => {
             response.end();
         })
     }
+    if (url === '/api/authors' && method === 'GET') {
+        fs.readFile('./data/authors.json', 'utf8').then((authorData) => {
+            const authors = JSON.parse(authorData)
+            response.setHeader('Content-Type', 'application/jason');
+            response.statusCode = 200;
+            response.write(JSON.stringify({ authors: authors }));
+            response.end();
+        })
+    }
 })
 
 server.listen(9090, (err) => {
