@@ -27,6 +27,22 @@ const server = http.createServer((request, response) => {
             response.end();
         })
     }
+    const pageUrl = url.match(/[0-9]/)[0]
+    if (url === `/api/books/${pageUrl}` && method === 'GET') {
+        fs.readFile('./data/books.json', 'utf8').then((bookData) => {
+            const books = JSON.parse(bookData);
+            let bookToSend = {};
+            books.forEach((book) => {
+                if (book.bookId == pageUrl) {
+                    bookToSend = book;
+                }
+            })
+            response.setHeader('Content-Type', 'application/jason');
+            response.statusCode = 200;
+            response.write(JSON.stringify({ book: bookToSend }));
+            response.end();
+        })
+    }
 })
 
 server.listen(9090, (err) => {
