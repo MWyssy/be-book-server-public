@@ -29,14 +29,14 @@ const server = http.createServer((request, response) => {
     }
     let pageUrl = 0;
     if (/[0-9]/.test(url)){
-        pageUrl = url.match(/[0-9]/)[0]
+        pageUrl = Number(url.match(/[0-9]/)[0])
     } 
     if (url === `/api/books/${pageUrl}` && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData);
             let bookToSend = {};
             books.forEach((book) => {
-                if (book.bookId == pageUrl) {
+                if (book.bookId === pageUrl) {
                     bookToSend = book;
                 }
             })
@@ -60,6 +60,29 @@ const server = http.createServer((request, response) => {
                 response.statusCode = 201;
                 response.write(JSON.stringify({ book: newBook }));
                 response.end();
+            })
+        })
+    }
+    if (url === `/api/books/${pageUrl}/author` && method === 'GET') {
+        console.log(pageUrl)
+        fs.readFile('./data/books.json', 'utf8').then((bookData) => {
+            const books = JSON.parse(bookData);
+            books.forEach((book) => {
+                if (book.bookId === pageUrl) {
+                    console.log(book.authorId)
+                    fs.readFile('./data/authors.json', 'utf8').then((authorData) => {
+                        const parsedAuthorData = JSON.parse(authorData);
+                        parsedAuthorData.forEach((author) => {
+                            if (book.authorId === author.authorId) {
+                                response.setHeader('Content-Type', 'application/json');
+                                response.statusCode = 200;
+                                response.write(JSON.stringify({ author: author }));
+                                response.end();
+                            }
+                        })
+
+                    })
+                }
             })
         })
     }
