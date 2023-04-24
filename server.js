@@ -3,19 +3,50 @@ const fs = require('fs/promises');
 
 const server = http.createServer((request, response) => {
     const { method, url } = request;
+    let searchTerm = '';
+    let searchValue = '';
+    if (/\?[a-z]+/.test(url)) {
+        searchTerm = `/${url.match(/\?[a-z]+/)[0]}`;
+        searchValue = url.match(/\=[a-z]+/)[0];
+    }
+    let pageUrl = 0;
+    if (/[0-9]/.test(url)){
+        pageUrl = Number(url.match(/[0-9]+/)[0])
+    } 
     if (url === '/api' && method === 'GET') {
         response.setHeader('Content-Type', 'application/json');
         response.statusCode = 200;
         response.write(JSON.stringify({ message: 'Hello!' }));
         response.end();
     };
-    if (url === '/api/books' && method === 'GET') {
+    if (url === `/api/books${searchTerm}${searchValue}` && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData)
-            response.setHeader('Content-Type', 'application/json');
-            response.statusCode = 200;
-            response.write(JSON.stringify({ books: books }));
-            response.end();
+            if (searchTerm !== '' && searchValue !== '') {
+                if (searchTerm.replace('/?', '') === "fiction" && (searchValue.replace('=', '') !== 'true' && searchValue.replace('=', '') !== 'false')) {
+                    response.setHeader('Content-Type', 'string');
+                    response.statusCode = 406;
+                    response.write('Error, incorrect search value - Please use either "true" or "false" when using the search term: "isFiction".');
+                    response.end();
+                } else if (searchTerm.replace('/?', '') === "fiction" && searchValue.replace('=', '') === 'true') {
+                    const filteredBooks = books.filter((book) => book.isFiction)
+                    response.setHeader('Content-Type', 'application/json');
+                    response.statusCode = 200;
+                    response.write(JSON.stringify({ books: filteredBooks }));
+                    response.end();
+                } else if (searchTerm.replace('/?', '') === "fiction" && searchValue.replace('=', '') === 'false') {
+                    const filteredBooks = books.filter((book) => !book.isFiction)
+                    response.setHeader('Content-Type', 'application/json');
+                    response.statusCode = 200;
+                    response.write(JSON.stringify({ books: filteredBooks }));
+                    response.end();
+                } 
+            } else {
+                response.setHeader('Content-Type', 'application/json');
+                response.statusCode = 200;
+                response.write(JSON.stringify({ books: books }));
+                response.end();
+            }
         })
     }
     if (url === '/api/authors' && method === 'GET') {
@@ -27,10 +58,6 @@ const server = http.createServer((request, response) => {
             response.end();
         })
     }
-    let pageUrl = 0;
-    if (/[0-9]/.test(url)){
-        pageUrl = Number(url.match(/[0-9]+/)[0])
-    } 
     if (url === `/api/books/${pageUrl}` && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData);
@@ -109,30 +136,6 @@ const server = http.createServer((request, response) => {
                 response.setHeader('Conent-Type', 'application/json');
                 response.statusCode = 404;
                 response.write('Error - Book not found.')
-                response.end();
-            }
-        })
-    }
-    let searchTerm = '';
-    let searchValue = '';
-    if (/\?[a-z]+/.test(url)) {
-        searchTerm = url.match(/\?[a-z]+/)[0].replace('?', '');
-        searchValue = url.match(/\=[a-z]+/)[0].replace('=', '');
-    }
-    if (url === `/api/books/?${searchTerm}=${searchValue}`) {
-        fs.readFile('./data/books.json', 'utf8').then((bookData) => {
-            const books = JSON.parse(bookData);
-            if (searchTerm === "fiction" && searchValue === 'true') {
-                const filteredBooks = books.filter((book) => book.isFiction)
-                response.setHeader('Content-Type', 'application/json');
-                response.statusCode = 200;
-                response.write(JSON.stringify({ books: filteredBooks }));
-                response.end();
-            } else if (searchTerm === "fiction" && searchValue === 'false') {
-                const filteredBooks = books.filter((book) => !book.isFiction)
-                response.setHeader('Content-Type', 'application/json');
-                response.statusCode = 200;
-                response.write(JSON.stringify({ books: filteredBooks }));
                 response.end();
             }
         })
