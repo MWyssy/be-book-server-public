@@ -29,7 +29,7 @@ const server = http.createServer((request, response) => {
     }
     let pageUrl = 0;
     if (/[0-9]/.test(url)){
-        pageUrl = Number(url.match(/[0-9]/)[0])
+        pageUrl = Number(url.match(/[0-9]+/)[0])
     } 
     if (url === `/api/books/${pageUrl}` && method === 'GET') {
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
@@ -40,10 +40,17 @@ const server = http.createServer((request, response) => {
                     bookToSend = book;
                 }
             })
-            response.setHeader('Content-Type', 'application/json');
-            response.statusCode = 200;
-            response.write(JSON.stringify({ book: bookToSend }));
-            response.end();
+            if (Object.keys(bookToSend).length === 0) {
+                response.setHeader('Conent-Type', 'application/json');
+                response.statusCode = 404;
+                response.write('Error - Book not found.')
+                response.end();
+            } else {
+                response.setHeader('Content-Type', 'application/json');
+                response.statusCode = 200;
+                response.write(JSON.stringify({ book: bookToSend }));
+                response.end();
+            }
         })
     }
     if (url === '/api/books' && method === 'POST') {
@@ -64,12 +71,12 @@ const server = http.createServer((request, response) => {
         })
     }
     if (url === `/api/books/${pageUrl}/author` && method === 'GET') {
-        console.log(pageUrl)
         fs.readFile('./data/books.json', 'utf8').then((bookData) => {
             const books = JSON.parse(bookData);
+            let bookToSend = {};
             books.forEach((book) => {
                 if (book.bookId === pageUrl) {
-                    console.log(book.authorId)
+                    bookToSend = book;
                     fs.readFile('./data/authors.json', 'utf8').then((authorData) => {
                         const parsedAuthorData = JSON.parse(authorData);
                         parsedAuthorData.forEach((author) => {
@@ -78,12 +85,18 @@ const server = http.createServer((request, response) => {
                                 response.statusCode = 200;
                                 response.write(JSON.stringify({ author: author }));
                                 response.end();
-                            }
+                            } 
                         })
 
                     })
-                }
+                } 
             })
+            if (Object.keys(bookToSend).length === 0) {
+                response.setHeader('Conent-Type', 'application/json');
+                response.statusCode = 404;
+                response.write('Error - Book not found.')
+                response.end();
+            }
         })
     }
 })
