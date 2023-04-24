@@ -99,6 +99,30 @@ const server = http.createServer((request, response) => {
             }
         })
     }
+    let searchTerm = '';
+    let searchValue = '';
+    if (/\?[a-z]+/.test(url)) {
+        searchTerm = url.match(/\?[a-z]+/)[0].replace('?', '');
+        searchValue = url.match(/\=[a-z]+/)[0].replace('=', '');
+    }
+    if (url === `/api/books/?${searchTerm}=${searchValue}`) {
+        fs.readFile('./data/books.json', 'utf8').then((bookData) => {
+            const books = JSON.parse(bookData);
+            if (searchTerm === "fiction" && searchValue === 'true') {
+                const filteredBooks = books.filter((book) => book.isFiction)
+                response.setHeader('Content-Type', 'application/json');
+                response.statusCode = 200;
+                response.write(JSON.stringify({ books: filteredBooks }));
+                response.end();
+            } else if (searchTerm === "fiction" && searchValue === 'false') {
+                const filteredBooks = books.filter((book) => !book.isFiction)
+                response.setHeader('Content-Type', 'application/json');
+                response.statusCode = 200;
+                response.write(JSON.stringify({ books: filteredBooks }));
+                response.end();
+            }
+        })
+    }
 })
 
 server.listen(9090, (err) => {
